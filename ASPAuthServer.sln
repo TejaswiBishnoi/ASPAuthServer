@@ -7,7 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Server", "Server\Server.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests", "Tests\Tests.csproj", "{CE060FDC-D9E5-4BC9-AA61-E2BA7E742F65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityProvider", "SSOProvider\IdentityProvider.csproj", "{535A84A1-B8D5-44C7-A033-859CBD95307A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{F47FE1D4-B167-49FE-A63C-4C03C6D39642}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityProvider", "IdentityProvider\IdentityProvider.csproj", "{AB29A0EC-A83E-4CB3-90B0-4005514B0635}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +25,10 @@ Global
 		{CE060FDC-D9E5-4BC9-AA61-E2BA7E742F65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE060FDC-D9E5-4BC9-AA61-E2BA7E742F65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE060FDC-D9E5-4BC9-AA61-E2BA7E742F65}.Release|Any CPU.Build.0 = Release|Any CPU
-		{535A84A1-B8D5-44C7-A033-859CBD95307A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{535A84A1-B8D5-44C7-A033-859CBD95307A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{535A84A1-B8D5-44C7-A033-859CBD95307A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{535A84A1-B8D5-44C7-A033-859CBD95307A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB29A0EC-A83E-4CB3-90B0-4005514B0635}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB29A0EC-A83E-4CB3-90B0-4005514B0635}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB29A0EC-A83E-4CB3-90B0-4005514B0635}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB29A0EC-A83E-4CB3-90B0-4005514B0635}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
