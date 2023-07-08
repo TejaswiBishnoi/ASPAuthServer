@@ -1,9 +1,11 @@
-﻿namespace IdentityProvider
+﻿using Microsoft.Extensions.Configuration;
+namespace IdentityProvider
 {
     public interface IIdentityProvider
     {
         string Name { get; }
-        IdentityObject? ProvideIdentity();
-        void Configure(string? config);
+        AuthorizationRequestObject? CreateAuthorizationRequest();
+        IdentityObject? ExchangeCodeForIdentity(string? code);
+        void Configure(IConfigurationSection config);
     }
 }
