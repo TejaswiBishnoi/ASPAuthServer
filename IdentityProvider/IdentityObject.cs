@@ -1,5 +1,8 @@
 ﻿namespace IdentityProvider
 {
+    /// <summary>
+    /// Object to hold identity information
+    /// </summary>
     public class IdentityObject
     {
         public string? Name { get; set; }
