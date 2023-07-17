@@ -23,14 +23,14 @@ namespace IdentityProvider
         /// </summary>
         /// <param name="code">The Authorization Code</param>
         /// <returns>An IdentityObject object which contains all the necessary identity information.</returns>
-        IdentityObject? ExchangeCodeForIdentityInfo(string? code);
+        IdentityObject? ExchangeCodeForIdentityInfo(string code);
         /// <summary>
         /// This method exchanges the authorization code for the identity.
         /// It does not return additional information, just the parameters that can authenticate the user.
         /// </summary>
         /// <param name="code">The Authorization Code</param>
         /// <returns>The string representation of chosen identity parameter.</returns>
-        string ExchangeCodeForIdentity(string? code);
+        string? ExchangeCodeForIdentity(string code);
         /// <summary>
         /// This method configures the IdentityProvider with the configuration provided in the configuration file through <paramref name="config"/>.
         /// </summary>

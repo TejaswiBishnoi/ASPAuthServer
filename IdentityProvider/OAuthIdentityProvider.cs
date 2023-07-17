@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using RestSharp;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 
 namespace IdentityProvider
 {
@@ -76,21 +78,83 @@ namespace IdentityProvider
             string redirUrl = _redirectClient.BuildUri(request).AbsoluteUri;
             return new Dictionary<string, string> { { "URL", redirUrl}, { "State", state } };
         }
-        private bool ValidateToken(string header, string payload, string signature)
+        public IdentityObject? ExchangeCodeForIdentityInfo(string code)
+        {
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            var idToken = GetIDToken(code);
+            var jwt = idToken.Split('.');
+            if (jwt.Length != 3) throw new Exception("Invalid JWT");
+            var header = jwt[0];
+            var payload = jwt[1];
+            var signature = jwt[2];
+            var validatedToken = ValidateToken(header, payload, signature);
+            IdentityObject identityInfo = new IdentityObject();
+            identityInfo.Email = validatedToken.Claims.Where(x => x.Type == "email").FirstOrDefault()?.Value;
+            identityInfo.Name = validatedToken.Claims.Where(x => x.Type == "name").FirstOrDefault()?.Value;
+            identityInfo.PictureURL = validatedToken.Claims.Where(x => x.Type == "picture").FirstOrDefault()?.Value;
+            identityInfo.Token = idToken;
+            identityInfo.MainField = identityInfo.Email;
+            if (identityInfo.MainField == null) throw new Exception("Email Claim not found in JWT");
+            return identityInfo;
+        }
+        public string? ExchangeCodeForIdentity(string code)
+        {
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            var idToken = GetIDToken(code);
+            var jwt = idToken.Split('.');
+            if (jwt.Length != 3) throw new Exception("Invalid JWT");
+            var header = jwt[0];
+            var payload = jwt[1];
+            var signature = jwt[2];
+            var validatedToken = ValidateToken(header, payload, signature);
+            var clm = validatedToken.Claims.Where(x => x.Type == "email").FirstOrDefault();
+            if (clm == null) throw new Exception("Email Claim not found in JWT");
+            return clm.Value;
+        }
+        private JwtSecurityToken ValidateToken(string header, string payload, string signature)
         {         
             try
             {
                 var jwtHeader = JwtHeader.Base64UrlDeserialize(header);
                 var jwtPayload = JwtPayload.Base64UrlDeserialize(payload);
-                if (!jwtHeader.ContainsKey("kid")) return false;
+                if (!jwtHeader.ContainsKey("kid")) throw new Exception("JWT Header does not contain kid!");
                 var kid = jwtHeader["kid"] as string;
+                if (!_publicKeyStore.ContainsKey(kid)) throw new Exception("Key Not Found!");
+                var key = _publicKeyStore[kid];
+
+                using (RSA rsa = new RSACryptoServiceProvider())
+                {
+                    rsa.ImportParameters(
+                        new RSAParameters(){
+                            Modulus = Base64UrlEncoder.DecodeBytes(key.N),
+                            Exponent = Base64UrlEncoder.DecodeBytes(key.E)
+                        });
+                    var rsaSecurityKey = new RsaSecurityKey(rsa);
+                    var validationParameters = new TokenValidationParameters()
+                    {
+                        ValidIssuer = "https://accounts.google.com",
+                        ValidAudience = _clientID,
+                        IssuerSigningKey = rsaSecurityKey
+                    };
+                    var handler = new JwtSecurityTokenHandler();
+                    string token = header + "." + payload + '.' + signature;
+                    handler.ValidateToken(signature, validationParameters, out SecurityToken validatedToken);  
+                    return (JwtSecurityToken) validatedToken;
+                }
                 
-            }
-            catch (Exception)
+            }                        
+            catch (Exception e)
             {
-                return false;
+                Console.WriteLine(e.Message);
+                throw e;
             }
-            
+
         }        
         private string GetIDToken(string code)
         {
