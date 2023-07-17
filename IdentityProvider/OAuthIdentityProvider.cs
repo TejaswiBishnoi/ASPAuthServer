@@ -7,42 +7,6 @@ using System.Security.Cryptography;
 namespace IdentityProvider
 {
     /// <summary>
-    /// Class representing JSON Web Key.
-    /// </summary>
-    public class JSONWebKey
-    {
-        public string E { get; }
-        public string Kty { get; }
-        public string N { get; }
-        public string Kid { get; }
-        public string Alg { get; }
-        public string Use { get; }
-        public JSONWebKey(string e, string kty, string n, string kid, string alg, string use)
-        {
-            E = e;
-            Kty = kty;
-            N = n;
-            Kid = kid;
-            Alg = alg;
-            Use = use;
-        }
-    }
-    public class JSONWebKeySet
-    {
-        public IList<JSONWebKey> JSONWebKeys { get;}
-        public JSONWebKeySet(IList<JSONWebKey> keys)
-        {
-            JSONWebKeys = keys;
-        }
-        public void PopulateStore(Dictionary<string, JSONWebKey> publicKeyStore)
-        {
-            foreach (var key in JSONWebKeys)
-            {
-                publicKeyStore.Add(key.Kid, key);
-            }
-        }
-    }
-    /// <summary>
     /// Provides Google OAuth2.0/OIDC Identity Services
     /// </summary>
     public class GoogleIdentityProvider: IIdentityProvider
@@ -56,7 +20,7 @@ namespace IdentityProvider
         private string? _signUpScope;
         private string? _signInScope;
         private string? _publicKeyURL;
-        private readonly Dictionary<string, JSONWebKey> _publicKeyStore;
+        private readonly Dictionary<string, JsonWebKey> _publicKeyStore;
         private bool _configured;
         public IDictionary<string, string>? CreateAuthorizationRequest(bool signup = false)
         {
@@ -186,7 +150,7 @@ namespace IdentityProvider
         }
         public GoogleIdentityProvider()
         {
-            _publicKeyStore = new Dictionary<string, JSONWebKey>();
+            _publicKeyStore = new Dictionary<string, JsonWebKey>();
             Name = "NC";
         }
         public void Configure(string name, IConfigurationSection config)
@@ -205,9 +169,13 @@ namespace IdentityProvider
             //Fetch Public Key
             RestClient pubKeyFetchClient = new RestClient(_publicKeyURL);
             RestRequest pubKeyFetchRequest = new RestRequest("");
-            var pubKey = pubKeyFetchClient.Execute<JSONWebKeySet>(pubKeyFetchRequest);
-            if (!pubKey.IsSuccessStatusCode || pubKey.Data == null) throw new InvalidDataException("JSONWebKeySet cannot be fetched");
-            pubKey.Data.PopulateStore(_publicKeyStore);
+            var pubKey = pubKeyFetchClient.Execute(pubKeyFetchRequest);
+            if (!pubKey.IsSuccessStatusCode || pubKey.Content == null) throw new InvalidDataException("JSONWebKeySet cannot be fetched");
+            var pubKeySet = new JsonWebKeySet(pubKey.Content);
+            foreach (var key in pubKeySet.Keys)
+            {
+                _publicKeyStore.Add(key.Kid, key);
+            }
             _configured = true;
         }
     }
