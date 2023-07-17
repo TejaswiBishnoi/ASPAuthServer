@@ -35,7 +35,7 @@ namespace IdentityProvider
             request.AddParameter("redirect_uri", _redirectURL);
             request.AddParameter("scope", scope);
             request.AddParameter("response_type", "code");
-            request.AddParameter("access_type", "online");
+            request.AddParameter("access_type", "offline");
             request.AddParameter("include_granted_scopes", "true");
             request.AddParameter("state", state);
             request.AddParameter("prompt", "consent");
@@ -168,7 +168,7 @@ namespace IdentityProvider
 
             //Fetch Public Key
             RestClient pubKeyFetchClient = new RestClient(_publicKeyURL);
-            RestRequest pubKeyFetchRequest = new RestRequest("");
+            RestRequest pubKeyFetchRequest = new RestRequest("/");
             var pubKey = pubKeyFetchClient.Execute(pubKeyFetchRequest);
             if (!pubKey.IsSuccessStatusCode || pubKey.Content == null) throw new InvalidDataException("JSONWebKeySet cannot be fetched");
             var pubKeySet = new JsonWebKeySet(pubKey.Content);
