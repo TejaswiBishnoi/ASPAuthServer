@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using IdentityProvider;
+using System.ComponentModel.DataAnnotations;
 
 namespace Tests
 {
@@ -8,6 +9,7 @@ namespace Tests
         IConfigurationSection config;
         GoogleIdentityProvider googleIdentityProvider;
         string code;
+        string email;
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
@@ -18,6 +20,7 @@ namespace Tests
             googleIdentityProvider = new GoogleIdentityProvider();
             googleIdentityProvider.Configure("Google", section);
             code = config["code"];
+            email = config["TestEmail"];
         }
         [SetUp]
         public void Setup()
@@ -69,18 +72,7 @@ namespace Tests
             {
                 Assert.Fail(ex.Message + "\n" + ex.StackTrace);
             }
-            Assert.IsTrue(!string.IsNullOrEmpty(iden) && iden == "tejaswibishnoi@gmail.com");
-        }
-        [Test]
-        public void DeserializeTest()
-        {
-            try
-            {
-                //Json string below is an example provided by Google and hence is safe to put here.
-                var resp = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json: "{\n  \"access_token\": \"1/fFAGRNJru1FTz70BzhT3Zg\",\n  \"expires_in\": 3920,\n  \"token_type\": \"Bearer\",\n  \"scope\": \"https://www.googleapis.com/auth/drive.metadata.readonly\",\n  \"refresh_token\": \"1//xEoDL4iW3cxlI7yDbSRFYNG01kVKM2C-259HOF2aQbI\"\n}");
-                Assert.Pass(resp["access_token"].);
-            }
-            catch (Exception e) { Assert.Fail();}
-        }
+            Assert.IsTrue(!string.IsNullOrEmpty(iden) && iden == email);
+        }        
     }
 }

@@ -7,6 +7,27 @@ using System.Security.Cryptography;
 namespace IdentityProvider
 {
     /// <summary>
+    /// Object representing OAuth Token Endpoint Response.
+    /// </summary>
+    public class TokenEndpointResponse
+    {
+        public string? access_token { get; private set; }
+        public string? token_type { get; private set; }
+        public int expires_in { get; private set; }
+        public string? refresh_token { get; private set; }
+        public string? id_token { get; private set; }
+        public string? scope { get; private set; }
+        public TokenEndpointResponse(string? access_token, string? token_type, int expires_in, string? refresh_token, string? id_token, string? scope)
+        {
+            this.access_token = access_token;
+            this.token_type = token_type;
+            this.expires_in = expires_in;
+            this.refresh_token = refresh_token;
+            this.id_token = id_token;
+            this.scope = scope;
+        }
+    }
+    /// <summary>
     /// Provides Google OAuth2.0/OIDC Identity Services
     /// </summary>
     public class GoogleIdentityProvider: IIdentityProvider
@@ -107,16 +128,16 @@ namespace IdentityProvider
                         IssuerSigningKey = rsaSecurityKey
                     };
                     var handler = new JwtSecurityTokenHandler();
-                    string token = header + "." + payload + '.' + signature;
-                    handler.ValidateToken(signature, validationParameters, out SecurityToken validatedToken);  
-                    return (JwtSecurityToken) validatedToken;
+                    string token = header + "." + payload + "." + signature;
+                    handler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);  
+                    return validatedToken as JwtSecurityToken;
                 }
                 
             }                        
             catch (Exception e)
             {
                 Console.WriteLine(e.Message);
-                throw e;
+                throw;
             }
 
         }        
@@ -132,21 +153,16 @@ namespace IdentityProvider
             request.AddParameter("client_secret", _clientSecret);
             request.AddParameter("redirect_uri", _redirectURL);
             request.AddParameter("grant_type", "authorization_code");
-            var response = _exchangeClient?.Execute(request);
-            if (response?.StatusCode != System.Net.HttpStatusCode.OK)
+            var response = _exchangeClient?.Execute<TokenEndpointResponse>(request);
+            if (response == null || !response.IsSuccessStatusCode)
             {
-                throw new HttpRequestException("Failed to exchange code for token.");
+                throw new Exception("Failed to exchange code for token.");
             }
-            try
+            if (response.Data == null || response.Data.id_token == null)
             {
-                var resp = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json: response?.Content);
-                if (resp == null || !resp.ContainsKey("id_token")) throw new Exception("Failed to deserialize response and fetch ID Token");
-                return resp["id_token"];
+                throw new Exception("Failed to exchange code for token.");
             }
-            catch (Exception ex)
-            {
-                throw new DeserializationException(response, ex);
-            }
+            return response.Data.id_token;
         }
         public GoogleIdentityProvider()
         {
