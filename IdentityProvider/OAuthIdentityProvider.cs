@@ -167,7 +167,52 @@ namespace IdentityProvider
         public GoogleIdentityProvider()
         {
             _publicKeyStore = new Dictionary<string, JsonWebKey>();
-            Name = "NC";
+            Name = "Google";
+        }
+        public void Configure(string name, IConfigurationSection config)
+        {
+            if (_configured) return;
+            Name = name;
+            _clientID = config["ClientID"];
+            _clientSecret = config["ClientSecret"];
+            _redirectURL = config["RedirectURL"];
+            _redirectClient = new RestClient("https://accounts.google.com/o/oauth2/v2/auth");
+            _exchangeClient = new RestClient("https://oauth2.googleapis.com/token");
+            _signInScope = config["SignInScope"];
+            _signUpScope = config["SignUpScope"];
+            _publicKeyURL = config["PublicKeyURL"];
+
+            //Fetch Public Key
+            RestClient pubKeyFetchClient = new RestClient(_publicKeyURL);
+            RestRequest pubKeyFetchRequest = new RestRequest("/");
+            var pubKey = pubKeyFetchClient.Execute(pubKeyFetchRequest);
+            if (!pubKey.IsSuccessStatusCode || pubKey.Content == null) throw new InvalidDataException("JSONWebKeySet cannot be fetched");
+            var pubKeySet = new JsonWebKeySet(pubKey.Content);
+            foreach (var key in pubKeySet.Keys)
+            {
+                _publicKeyStore.Add(key.Kid, key);
+            }
+            _configured = true;
+        }
+    }
+    class AppleIdentityProvider: IIdentityProvider
+    {
+        public string Name { get; private set; }
+        private string? _clientID;
+        private string? _clientSecret;
+        private string? _redirectURL;
+        private RestClient? _redirectClient;
+        private RestClient? _exchangeClient;
+        private string? _signUpScope;
+        private string? _signInScope;
+        private string? _publicKeyURL;
+        private readonly Dictionary<string, JsonWebKey> _publicKeyStore;
+        private bool _configured;
+
+        public AppleIdentityProvider()
+        {
+            _publicKeyStore = new Dictionary<string, JsonWebKey>();
+            Name = "Apple";
         }
         public void Configure(string name, IConfigurationSection config)
         {
