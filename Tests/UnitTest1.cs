@@ -10,6 +10,7 @@ namespace Tests
         GoogleIdentityProvider googleIdentityProvider;
         string code;
         string email;
+        string name;
         [OneTimeSetUp]
         public void OneTimeSetup()
         {
@@ -21,6 +22,7 @@ namespace Tests
             googleIdentityProvider.Configure("Google", section);
             code = config["code"];
             email = config["TestEmail"];
+            name = config["TestName"];
         }
         [SetUp]
         public void Setup()
@@ -42,13 +44,14 @@ namespace Tests
             }
             Assert.Pass();
         }        
-        [Test]
-        public void AuthorizationURLTest()
+        [TestCase()]
+        [TestCase(true)]
+        public void AuthorizationURLTest(bool signup = false)
         {
             IDictionary<string, string>? dic = null;
             try
             {
-                dic = googleIdentityProvider.CreateAuthorizationRequest();
+                dic = googleIdentityProvider.CreateAuthorizationRequest(signup);
             }
             catch(Exception ex)
             {
@@ -73,6 +76,20 @@ namespace Tests
                 Assert.Fail(ex.Message + "\n" + ex.StackTrace);
             }
             Assert.IsTrue(!string.IsNullOrEmpty(iden) && iden == email);
-        }        
+        }
+        [Test]
+        public void GetIdentityInfoTest()
+        {
+            IdentityObject? info = null;
+            try
+            {
+                info = googleIdentityProvider.ExchangeCodeForIdentityInfo(code);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.Message + "\n" + ex.StackTrace);
+            }
+            Assert.IsTrue(info != null && info.Name == name && info.Email == email, info?.Token);
+        }
     }
 }
