@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using RestSharp;
+using System.Diagnostics.CodeAnalysis;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 
@@ -195,6 +196,51 @@ namespace IdentityProvider
             _configured = true;
         }
     }
+    public class MicrosoftIdentityProvider: IIdentityProvider
+    {
+        public string Name { get; private set; }
+        private string? _clientID;
+        private string? _clientSecret;
+        private string? _redirectURL;
+        private RestClient? _redirectClient;
+        private RestClient? _exchangeClient;
+        private string? _signUpScope;
+        private string? _signInScope;
+        private string? _publicKeyURL;
+        private readonly Dictionary<string, JsonWebKey> _publicKeyStore;
+        private bool _configured;
+             
+        public IDictionary<string, string>? CreateAuthorizationRequest(bool signup = false)
+        {
+            throw new NotImplementedException("Will Be Implemented");
+        }
+        public string? ExchangeCodeForIdentity(string code)
+        {
+            throw new NotImplementedException("Will Be Implemented");
+        }
+        public IdentityObject? ExchangeCodeForIdentityInfo(string code)
+        {
+            throw new NotImplementedException("Will Be Implemented");
+        }
+        public MicrosoftIdentityProvider()
+        {            
+            _publicKeyStore = new Dictionary<string, JsonWebKey>();
+            Name = "Microsoft";
+        }
+        public void Configure(string name, IConfigurationSection config)
+        {
+            throw new NotImplementedException("Being Implemented");
+        }
+    }
+
+    [Obsolete]
+    /// <summary>
+    /// Apple Identity Provider. Development stopped for now due to apple's restriction on devices.
+    /// </summary>
+    /// <remarks>
+    /// Do not use this class as it is incomplete and for now will not be developed any further.
+    /// The Constructor of this class will throw NotImplementedException() indicating class has not been implemented yet.
+    /// </remarks>
     class AppleIdentityProvider: IIdentityProvider
     {
         public string Name { get; private set; }
@@ -208,9 +254,37 @@ namespace IdentityProvider
         private string? _publicKeyURL;
         private readonly Dictionary<string, JsonWebKey> _publicKeyStore;
         private bool _configured;
-
+        
+        public IdentityObject ExchangeCodeForIdentityInfo(string code)
+        {
+            throw new NotImplementedException();
+        }
+        public string? ExchangeCodeForIdentity(string code)
+        {
+            throw new NotImplementedException();
+        }
+        public IDictionary<string, string>? CreateAuthorizationRequest(bool signup = false)
+        {
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            var scope = signup ? _signUpScope : _signInScope;
+            var request = new RestRequest("", Method.Get);
+            string state = Name + ":" + Guid.NewGuid().ToString();
+            request.AddParameter("client_id", _clientID);
+            request.AddParameter("redirect_uri", _redirectURL);
+            request.AddParameter("scope", scope);
+            request.AddParameter("response_type", "code");
+            request.AddParameter("response_mode", "query");
+            request.AddParameter("access_type", "offline");
+            request.AddParameter("state", state);
+            string redirUrl = _redirectClient.BuildUri(request).AbsoluteUri;
+            return new Dictionary<string, string> { { "URL", redirUrl }, { "State", state } };
+        }
         public AppleIdentityProvider()
         {
+            throw new NotImplementedException();
             _publicKeyStore = new Dictionary<string, JsonWebKey>();
             Name = "Apple";
         }
@@ -221,8 +295,8 @@ namespace IdentityProvider
             _clientID = config["ClientID"];
             _clientSecret = config["ClientSecret"];
             _redirectURL = config["RedirectURL"];
-            _redirectClient = new RestClient("https://accounts.google.com/o/oauth2/v2/auth");
-            _exchangeClient = new RestClient("https://oauth2.googleapis.com/token");
+            _redirectClient = new RestClient("https://appleid.apple.com/auth/authorize");
+            _exchangeClient = new RestClient("https://appleid.apple.com/auth/token");
             _signInScope = config["SignInScope"];
             _signUpScope = config["SignUpScope"];
             _publicKeyURL = config["PublicKeyURL"];
