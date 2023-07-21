@@ -169,6 +169,7 @@ namespace IdentityProvider
         {
             _publicKeyStore = new Dictionary<string, JsonWebKey>();
             Name = "Google";
+            _configured = false;
         }
         public void Configure(string name, IConfigurationSection config)
         {
@@ -226,10 +227,32 @@ namespace IdentityProvider
         {            
             _publicKeyStore = new Dictionary<string, JsonWebKey>();
             Name = "Microsoft";
+            _configured = false;
         }
         public void Configure(string name, IConfigurationSection config)
-        {
-            throw new NotImplementedException("Being Implemented");
+        {            
+            if (_configured) return;
+            Name = name;
+            _clientID = config["ClientID"];
+            _clientSecret = config["ClientSecret"];
+            _redirectURL = config["RedirectURL"];
+            _redirectClient = new RestClient("https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize");
+            _exchangeClient = new RestClient("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
+            _signInScope = config["SignInScope"];
+            _signUpScope = config["SignUpScope"];
+            _publicKeyURL = config["PublicKeyURL"];
+
+            //Fetch Public Key
+            RestClient pubKeyFetchClient = new RestClient(_publicKeyURL);
+            RestRequest pubKeyFetchRequest = new RestRequest("/");
+            var pubKey = pubKeyFetchClient.Execute(pubKeyFetchRequest);
+            if (!pubKey.IsSuccessStatusCode || pubKey.Content == null) throw new InvalidDataException("JSONWebKeySet cannot be fetched");
+            var pubKeySet = new JsonWebKeySet(pubKey.Content);
+            foreach (var key in pubKeySet.Keys)
+            {
+                _publicKeyStore.Add(key.Kid, key);
+            }
+            _configured = true;
         }
     }
 
@@ -285,8 +308,8 @@ namespace IdentityProvider
         public AppleIdentityProvider()
         {
             throw new NotImplementedException();
-            _publicKeyStore = new Dictionary<string, JsonWebKey>();
-            Name = "Apple";
+            //_publicKeyStore = new Dictionary<string, JsonWebKey>();
+            //Name = "Apple";
         }
         public void Configure(string name, IConfigurationSection config)
         {

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using IdentityProvider;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Tests
 {
@@ -90,6 +91,34 @@ namespace Tests
                 Assert.Fail(ex.Message + "\n" + ex.StackTrace);
             }
             Assert.IsTrue(info != null && info.Name == name && info.Email == email, info?.Token);
+        }
+    }
+    class MSIDProviderTest
+    {
+        IConfigurationSection config;
+        MicrosoftIdentityProvider microsoftIdentityProvider;
+        
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            IConfigurationBuilder builder = new ConfigurationBuilder().AddJsonFile("appsettings.json", false, true);
+            IConfiguration config = builder.Build();
+            IConfigurationSection section = config.GetSection("IdentityPlugins").GetSection("OAuth").GetSection("Microsoft");
+            this.config = section;
+        }
+        [Test] 
+        public void ConfigTest()
+        {
+            try
+            {
+                IIdentityProvider x = new MicrosoftIdentityProvider();
+                x.Configure("Microsoft", config);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.Message);
+            }
+            Assert.Pass();
         }
     }
 }
