@@ -212,8 +212,27 @@ namespace IdentityProvider
         private bool _configured;
              
         public IDictionary<string, string>? CreateAuthorizationRequest(bool signup = false)
-        {
-            throw new NotImplementedException("Will Be Implemented");
+        {            
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            var scope = signup ? _signUpScope : _signInScope;
+            var request = new RestRequest("", Method.Get);
+            string state = Name + ":" + Guid.NewGuid().ToString();
+            request.AddParameter("client_id", _clientID);
+            request.AddParameter("redirect_uri", _redirectURL);
+            request.AddParameter("scope", scope);
+            request.AddParameter("response_type", "code");
+            request.AddParameter("access_type", "offline");
+            request.AddParameter("response_mode", "query");
+            // Random nonce to be replaced by a concrete implementation in future which verifies it to prevent against replay.
+            var rnd = new Random();
+            request.AddParameter("nonce", rnd.Next(1000000, 9999999));
+            request.AddParameter("state", state);
+            request.AddParameter("prompt", "consent");
+            string redirUrl = _redirectClient.BuildUri(request).AbsoluteUri;
+            return new Dictionary<string, string> { { "URL", redirUrl }, { "State", state } };
         }
         public string? ExchangeCodeForIdentity(string code)
         {

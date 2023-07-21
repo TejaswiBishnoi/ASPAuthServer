@@ -96,7 +96,7 @@ namespace Tests
     class MSIDProviderTest
     {
         IConfigurationSection config;
-        MicrosoftIdentityProvider microsoftIdentityProvider;
+        IIdentityProvider microsoftIdentityProvider;
         
         [OneTimeSetUp]
         public void OneTimeSetUp()
@@ -105,6 +105,8 @@ namespace Tests
             IConfiguration config = builder.Build();
             IConfigurationSection section = config.GetSection("IdentityPlugins").GetSection("OAuth").GetSection("Microsoft");
             this.config = section;
+            microsoftIdentityProvider = new MicrosoftIdentityProvider();
+            microsoftIdentityProvider.Configure("Microsoft", section);
         }
         [Test] 
         public void ConfigTest()
@@ -119,6 +121,25 @@ namespace Tests
                 Assert.Fail(ex.Message);
             }
             Assert.Pass();
+        }
+        [TestCase()]
+        [TestCase(true)]
+        public void AuthorizationURLTest(bool signup = false)
+        {
+            IDictionary<string, string>? dic = null;
+            try
+            {
+                dic = microsoftIdentityProvider.CreateAuthorizationRequest(signup);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.Message);
+            }
+            if (dic == null || !dic.ContainsKey("URL"))
+            {
+                Assert.Fail("Request not complete!");
+            }
+            Assert.Pass(dic["URL"]);
         }
     }
 }
