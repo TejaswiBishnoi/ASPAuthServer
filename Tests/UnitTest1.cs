@@ -100,6 +100,7 @@ namespace Tests
         string code;
         string identity;
         string name;
+        string email;
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
@@ -111,6 +112,8 @@ namespace Tests
             microsoftIdentityProvider.Configure("Microsoft", section);
             code = section["code"];
             identity = section["sub"];
+            name = section["name"];
+            email = section["email"];
         }
         [Test] 
         public void ConfigTest()
@@ -158,6 +161,21 @@ namespace Tests
                 Assert.Fail(ex.Message + "\n" + ex.StackTrace);
             }
             Assert.IsTrue(iden is not null && identity == iden);
+        }
+        [Test]
+        public void GetIdentityInfoTest()
+        {
+            IdentityObject? info = null;
+            try
+            {
+                info = microsoftIdentityProvider.ExchangeCodeForIdentityInfo(code);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.Message + "\n" + ex.StackTrace);
+            }
+            Assert.IsTrue(info != null && info.Name == name && info.Email == email, info?.Token);
+            Assert.Pass(info?.Token);
         }
     }
 }

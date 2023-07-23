@@ -298,8 +298,7 @@ namespace IdentityProvider
             return response.Data.id_token;
         }
         public string? ExchangeCodeForIdentity(string code)
-        {
-            //throw new NotImplementedException("Will Be Implemented");
+        {            
             if (!_configured)
             {
                 throw new InvalidOperationException("Identity Provider not configured.");
@@ -315,8 +314,22 @@ namespace IdentityProvider
             return validatedToken.Subject;
         }
         public IdentityObject? ExchangeCodeForIdentityInfo(string code)
-        {
-            throw new NotImplementedException("Will Be Implemented");
+        {            
+            var idToken = GetIDToken(code);
+            var jwt = idToken.Split('.');
+            if (jwt.Length != 3) throw new Exception("Invalid JWT");
+            var header = jwt[0];
+            var payload = jwt[1];
+            var signature = jwt[2];
+            var validatedToken = ValidateToken(header, payload, signature);
+            IdentityObject identityInfo = new IdentityObject();
+            identityInfo.Email = validatedToken.Claims.Where(x => x.Type == "email").FirstOrDefault()?.Value;
+            identityInfo.Name = validatedToken.Claims.Where(x => x.Type == "name").FirstOrDefault()?.Value;
+            identityInfo.PictureURL = validatedToken.Claims.Where(x => x.Type == "picture").FirstOrDefault()?.Value;
+            identityInfo.Token = idToken;
+            identityInfo.MainField = validatedToken.Subject;
+            if (identityInfo.MainField == null) throw new Exception("Identity Carrying Claim not found in JWT");
+            return identityInfo;
         }
         public MicrosoftIdentityProvider()
         {            
