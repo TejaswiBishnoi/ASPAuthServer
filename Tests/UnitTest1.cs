@@ -97,7 +97,9 @@ namespace Tests
     {
         IConfigurationSection config;
         IIdentityProvider microsoftIdentityProvider;
-        
+        string code;
+        string identity;
+        string name;
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
@@ -107,6 +109,8 @@ namespace Tests
             this.config = section;
             microsoftIdentityProvider = new MicrosoftIdentityProvider();
             microsoftIdentityProvider.Configure("Microsoft", section);
+            code = section["code"];
+            identity = section["sub"];
         }
         [Test] 
         public void ConfigTest()
@@ -140,6 +144,20 @@ namespace Tests
                 Assert.Fail("Request not complete!");
             }
             Assert.Pass(dic["URL"]);
+        }
+        [Test]
+        public void GetIdentityTest()
+        {
+            string? iden = null;
+            try
+            {
+                iden = microsoftIdentityProvider.ExchangeCodeForIdentity(code);
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.Message + "\n" + ex.StackTrace);
+            }
+            Assert.IsTrue(iden is not null && identity == iden);
         }
     }
 }

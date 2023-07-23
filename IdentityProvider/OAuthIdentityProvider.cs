@@ -233,10 +233,86 @@ namespace IdentityProvider
             request.AddParameter("prompt", "consent");
             string redirUrl = _redirectClient.BuildUri(request).AbsoluteUri;
             return new Dictionary<string, string> { { "URL", redirUrl }, { "State", state } };
+        }        
+        private JwtSecurityToken ValidateToken(string header, string payload, string signature)
+        {
+            try
+            {
+                var jwtHeader = JwtHeader.Base64UrlDeserialize(header);
+                var jwtPayload = JwtPayload.Base64UrlDeserialize(payload);
+                if (!jwtHeader.ContainsKey("kid")) throw new Exception("JWT Header does not contain kid!");
+                var kid = jwtHeader["kid"] as string;
+                if (!_publicKeyStore.ContainsKey(kid)) throw new Exception("Key Not Found!");
+                var key = _publicKeyStore[kid];
+
+                using (RSA rsa = new RSACryptoServiceProvider())
+                {
+                    rsa.ImportParameters(
+                        new RSAParameters()
+                        {
+                            Modulus = Base64UrlEncoder.DecodeBytes(key.N),
+                            Exponent = Base64UrlEncoder.DecodeBytes(key.E)
+                        });
+                    var rsaSecurityKey = new RsaSecurityKey(rsa);
+                    var validationParameters = new TokenValidationParameters()
+                    {
+                        ValidateIssuer = false,
+                        ValidAudience = _clientID,
+                        IssuerSigningKey = rsaSecurityKey
+                    };
+                    var handler = new JwtSecurityTokenHandler();
+                    string token = header + "." + payload + "." + signature;
+                    handler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                    return validatedToken as JwtSecurityToken;
+                }
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                throw;
+            }
+
+        }
+        private string GetIDToken(string code)
+        {
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            RestRequest request = new("", Method.Post);
+            request.AddParameter("code", code);
+            request.AddParameter("client_id", _clientID);
+            request.AddParameter("client_secret", _clientSecret);
+            request.AddParameter("redirect_uri", _redirectURL);
+            request.AddParameter("grant_type", "authorization_code");
+            var response = _exchangeClient?.Execute<TokenEndpointResponse>(request);
+            if (response == null || !response.IsSuccessStatusCode)
+            {
+                throw new Exception("Failed to exchange code for token.");
+            }
+            if (response.Data == null || response.Data.id_token == null)
+            {
+                throw new Exception("Failed to exchange code for token.");
+            }
+            return response.Data.id_token;
         }
         public string? ExchangeCodeForIdentity(string code)
         {
-            throw new NotImplementedException("Will Be Implemented");
+            //throw new NotImplementedException("Will Be Implemented");
+            if (!_configured)
+            {
+                throw new InvalidOperationException("Identity Provider not configured.");
+            }
+            var idToken = GetIDToken(code);
+            var jwt = idToken.Split('.');
+            if (jwt.Length != 3) throw new Exception("Invalid JWT");
+            var header = jwt[0];
+            var payload = jwt[1];
+            var signature = jwt[2];
+            var validatedToken = ValidateToken(header, payload, signature);            
+            if (validatedToken.Subject == null) throw new Exception("Identity Carrying Claim not found in JWT");
+            return validatedToken.Subject;
         }
         public IdentityObject? ExchangeCodeForIdentityInfo(string code)
         {
