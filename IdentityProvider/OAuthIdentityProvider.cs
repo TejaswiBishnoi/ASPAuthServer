@@ -197,6 +197,9 @@ namespace IdentityProvider
             _configured = true;
         }
     }
+    /// <summary>
+    /// Provides Microsoft OAuth2.0/OIDC Identity Services
+    /// </summary>
     public class MicrosoftIdentityProvider: IIdentityProvider
     {
         public string Name { get; private set; }
