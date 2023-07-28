@@ -15,15 +15,15 @@ namespace IdentityProvider
         /// <summary>
         /// The name associated with the IdentityProvider
         /// </summary>
-        string Name { get; set; }
+        public string Name { get; set; }
         /// <summary>
         /// Message to be displayed with Identity Provider (e.g. "Sign in with Google")
         /// </summary>
-        string Message { get; set; }
+        public string Message { get; set; }
         /// <summary>
         /// Icon to be displayed with Identity Provider (e.g. Logo of Microsoft)
         /// </summary>
-        string Icon { get; set; }
+        public string Icon { get; set; }
     }
     /// <summary>
     /// Interface for Identity Provider Factory
