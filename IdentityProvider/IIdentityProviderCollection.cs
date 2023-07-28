@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace IdentityProvider
@@ -20,15 +21,23 @@ namespace IdentityProvider
         /// <returns>Identity Provider with given name</returns>
         IIdentityProvider? this[string name] { get; }
         /// <summary>
+        /// The metadata about the available identity providers that can be used by front-end to display the available options.
+        /// </summary>
+        /// <remarks>Metadata is a JSON string.</remarks>
+        public string Metadata { get; }
+        /// <summary>
         /// Builds the collection of Identity Providers from the given configuration.
+        /// Will clear the existing collection and build a new one.
         /// </summary>
         /// <param name="config">The configuration using which the collection has to be created.</param>
+        /// <remarks>If you need to rebuild the whole collection use this method else use other methods.</remarks>
         void Build(IConfigurationSection config);
         /// <summary>
         /// Add a new Identity Provider to the collection.
         /// </summary>
         /// <param name="provider">The Identity Provider which is to be added.</param>
-        void Add(IIdentityProvider provider);
+        /// <param name="metadata">The metadata associated with the Identity Provider.</param>
+        void Add(IIdentityProvider provider, IdentitityProviderMetadata metadata);
         /// <summary>
         /// Add a new Identity Provider to the collection from the given configuration.
         /// </summary>
@@ -53,13 +62,15 @@ namespace IdentityProvider
     {
         private readonly IDictionary<string, IIdentityProvider> _identityProviders;
         private readonly IIdentityProviderFactory _identityProviderFactory;
+        private readonly IDictionary<string, IdentitityProviderMetadata> _identityProvidersMetadata;
+        public string Metadata { get; private set; }
         public IIdentityProvider? this[string name]
         {
             get {
                 if (_identityProviders.ContainsKey(name)) return _identityProviders[name];
                 else return null;
             }
-        }
+        }      
         /// <summary>
         /// The constructor for IdentityProviderCollection.
         /// </summary>
@@ -68,47 +79,61 @@ namespace IdentityProvider
         {
             _identityProviders = new Dictionary<string, IIdentityProvider>();
             _identityProviderFactory = identityProviderFactory;
+            _identityProvidersMetadata = new Dictionary<string, IdentitityProviderMetadata>();
+            Metadata = System.Text.Json.JsonSerializer.Serialize(_identityProvidersMetadata);
         }
+        private void UpdateMetadata() => Metadata = System.Text.Json.JsonSerializer.Serialize(_identityProvidersMetadata);
         public void Build(IConfigurationSection config)
         {
             //throw new NotImplementedException("Build method not implemented");
+            _identityProvidersMetadata.Clear();
+            _identityProviders.Clear();
             foreach (var section in config.GetChildren())
             {
                 foreach(var subsection in section.GetChildren())
                 {
                     var identityProvider = _identityProviderFactory.GetIdentityProvider(subsection);
-                    if (identityProvider != null)
+                    var metadata = _identityProviderFactory.GetMetadata(subsection);
+                    if (identityProvider != null && metadata != null)
                     {
                         _identityProviders.Add(identityProvider.Name, identityProvider);
+                        _identityProvidersMetadata.Add(identityProvider.Name, metadata);
                     }
                 }
             }
+            UpdateMetadata();
         }
-        public void Add(IIdentityProvider identityProvider)
+        public void Add(IIdentityProvider identityProvider, IdentitityProviderMetadata metadata)
         {
             //throw new NotImplementedException("Add method not implemented");
             if (!_identityProviders.ContainsKey(identityProvider.Name))
             {
                 _identityProviders.Add(identityProvider.Name, identityProvider);
+                _identityProvidersMetadata.Add(identityProvider.Name, metadata);
             }
             else throw new Exception("Identity Provider already exists");
+            UpdateMetadata();
         }
         public void AddFromConfiguration(IConfigurationSection config)
         {
             //throw new NotImplementedException("AddFromConfiguration method not implemented");
             var identityProvider = _identityProviderFactory.GetIdentityProvider(config);
-            if (identityProvider != null && !_identityProviders.ContainsKey(identityProvider.Name))
+            var metadata = _identityProviderFactory.GetMetadata(config);
+            if (identityProvider is not null && metadata is not null && !_identityProviders.ContainsKey(identityProvider.Name))
             {
                 _identityProviders.Add(identityProvider.Name, identityProvider);
+                _identityProvidersMetadata.Add(identityProvider.Name, metadata);
             }
             else if (identityProvider != null) throw new Exception("Identity Provider already exists");
+            UpdateMetadata();
         }
         public void Remove(IIdentityProvider provider)
         {
             //throw new NotImplementedException("Remove method not implemented");
-            if (_identityProviders.ContainsKey(identityProvider.Name))
+            if (_identityProviders.ContainsKey(provider.Name))
             {
-                _identityProviders.Remove(identityProvider.Name);
+                _identityProviders.Remove(provider.Name);
+                _identityProvidersMetadata.Remove(provider.Name);
             }
             else throw new Exception("Identity Provider does not exist");
         }
@@ -118,6 +143,7 @@ namespace IdentityProvider
             if (_identityProviders.ContainsKey(key))
             {
                 _identityProviders.Remove(key);
+                _identityProvidersMetadata.Remove(key);
             }
             else throw new Exception("Identity Provider does not exist");
         }
